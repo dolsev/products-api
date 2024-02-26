@@ -1,5 +1,11 @@
 # Getting Started with Create React App
 
+Filter by name is working on backend.
+Filter by price has issues on backend, therefore I used additional filter on client side.
+There are no brands currently, although I added functionality.
+
+# Getting Started with Create React App
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

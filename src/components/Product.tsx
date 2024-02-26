@@ -7,13 +7,12 @@ interface ProductProps {
         price: number;
         brand?: string;
     };
-    index: number;
 }
 
-const Product: React.FC<ProductProps> = ({ product, index }) => {
+const Product: React.FC<ProductProps> = ({ product }) => {
     return (
         <div>
-            <h4>{index}. {product.product}</h4>
+            <h4>{product.product}</h4>
             <p>ID: {product.id}</p>
             <p>Price: ${product.price}</p>
             <p>Brand: {product.brand || 'N/A'}</p>

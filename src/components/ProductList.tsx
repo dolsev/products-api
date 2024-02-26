@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import _ from 'lodash';
 import Product from './Product';
-import Pagination from './Pagination';
-import { fetchProductIds, fetchProductDetails } from './utils/api';
+import { fetchFilteredProductIds, fetchProductDetails, fetchProductIds } from './utils/api';
+import useDebounce from "./utils/hooks/useDebounce";
 
 interface ProductType {
     id: string;
@@ -13,98 +12,82 @@ interface ProductType {
 
 const ProductList: React.FC = () => {
     const [products, setProducts] = useState<ProductType[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [filter, setFilter] = useState({ name: '', price: '', brand: '' });
+    const [filterQuery, setFilterQuery] = useState<string>('');
+    const [filterPrice, setFilterPrice] = useState<number | undefined>();
+    const [filterBrand, setFilterBrand] = useState<string>('');
+
+    const debouncedFilterQuery = useDebounce(filterQuery, 3000);
+
+    const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilterQuery(event.target.value);
+    };
+
+    const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const price = parseFloat(event.target.value);
+        setFilterPrice(price);
+    };
+
+    const handleBrandChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilterBrand(event.target.value);
+    };
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                let productIds = await fetchProductIds(currentPage);
-                if (Object.values(filter).some(value => value !== '')) {
-                    productIds = await applyFilter(productIds);
+                let filteredProductIds: string[] = [];
+                if (debouncedFilterQuery.length > 3) {
+                    filteredProductIds = await fetchFilteredProductIds(debouncedFilterQuery);
+                } else {
+                    filteredProductIds = await fetchProductIds();
                 }
-                const productDetails = await fetchProductDetails(productIds);
-                const uniqueProducts = removeDuplicates(productDetails, 'id');
-                setProducts(uniqueProducts.slice(0, 50));
+                const productDetails = await fetchProductDetails(filteredProductIds);
 
-                const totalProductIds = await fetchProductIds(1);
-                const totalProducts = totalProductIds.length;
-                const totalPages = Math.ceil(totalProducts / 50);
-                setTotalPages(totalPages);
+                const filteredProducts = productDetails.filter((product:ProductType) => {
+                    return filterPrice ? product.price === filterPrice : true;
+                });
+
+                setProducts(filteredProducts);
             } catch (error) {
                 console.error('Error fetching products:', error);
             }
         };
 
-        const debouncedFetchProducts = _.debounce(fetchProducts, 300);
-
-        debouncedFetchProducts();
-
-        return () => {
-            debouncedFetchProducts.cancel();
-        };
-    }, [currentPage, filter]);
-
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-    };
-
-    const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = event.target;
-        setFilter({ ...filter, [name]: value });
-    };
-
-    const applyFilter = async (productIds: string[]) => {
-        try {
-            const filteredProductIds = await fetchProductIds(1);
-            const filteredProducts = await fetchProductDetails(filteredProductIds);
-            return filteredProducts
-                .filter((product: ProductType) => {
-                    if (filter.name && !product.product.toLowerCase().includes(filter.name.toLowerCase())) {
-                        return false;
-                    }
-                    if (filter.price && product.price !== parseFloat(filter.price)) {
-                        return false;
-                    }
-                    return !(filter.brand && product.brand !== filter.brand);
-
-                })
-                .map((product: ProductType) => product.id);
-        } catch (error) {
-            console.error('Error applying filter:', error);
-            return productIds;
-        }
-    };
-
-    const removeDuplicates = (arr: any[], prop: string) => {
-        return arr.filter((obj, index, self) =>
-            index === self.findIndex((o) => o[prop] === obj[prop])
-        );
-    };
-
+        fetchProducts();
+    }, [debouncedFilterQuery, filterPrice]);
 
     return (
         <div>
             <h1>Список товаров</h1>
-            <div className='filter__box'>
             <div>
-                <label htmlFor="name">Название:</label>
-                <input type="text" id="name" name="name" value={filter.name} onChange={handleFilterChange} />
+                <label htmlFor="filterQuery">Поиск по наименованию:</label>
+                <input
+                    type="text"
+                    id="filterQuery"
+                    value={filterQuery}
+                    onChange={handleFilterChange}
+                />
             </div>
             <div>
-                <label htmlFor="price">Цена:</label>
-                <input type="text" id="price" name="price" value={filter.price} onChange={handleFilterChange} />
+                <label htmlFor="filterPrice">Фильтр по цене:</label>
+                <input
+                    type="number"
+                    id="filterPrice"
+                    value={filterPrice ?? ''}
+                    onChange={handlePriceChange}
+                />
             </div>
             <div>
-                <label htmlFor="brand">Бренд:</label>
-                <input type="text" id="brand" name="brand" value={filter.brand} onChange={handleFilterChange} />
+                <label htmlFor="filterBrand">Фильтр по бренду:</label>
+                <input
+                    type="text"
+                    id="filterBrand"
+                    value={filterBrand}
+                    onChange={handleBrandChange}
+                />
             </div>
-            </div>
-            {products.map((product, index) => (
-                <Product key={product.id} product={product} index={(currentPage - 1) * 50 + index + 1} />
+            {products.map(product => (
+                <Product key={product.id} product={product} />
             ))}
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
     );
 }

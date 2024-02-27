@@ -1,44 +1,9 @@
 // api.tsx
+import {ProductInterface} from "../types/productInterface";
 const md5 = require('md5');
-
-interface ProductType {
-    id: string;
-    product: string;
-    price: number;
-    brand?: string;
-}
 
 const BASE_URL = 'https://api.valantis.store:41000/';
 const PASSWORD = 'Valantis';
-
-async function fetchFilteredProductIds(query?: string, price?: number, brand?: string): Promise<string[]> {
-    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const authString = md5(PASSWORD + '_' + timestamp);
-
-    const body = {
-        action: 'filter',
-        params: {
-            product: query,
-            price: price,
-            brand: brand
-        }
-    };
-
-    const response = await fetch(BASE_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Auth': authString
-        },
-        body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch filtered product IDs');
-    }
-    const data = await response.json();
-    return data.result;
-}
 
 async function fetchProductIds(offset: number): Promise<string[]> {
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -67,7 +32,46 @@ async function fetchProductIds(offset: number): Promise<string[]> {
     return Array.from(new Set(data.result));
 }
 
-async function fetchProductDetails(productIds: string[], currentProducts: ProductType[]): Promise<ProductType[]> {
+async function fetchFilteredProductIds(product?: string, price?: number, brand?: string): Promise<string[]> {
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const authString = md5(PASSWORD + '_' + timestamp);
+
+    const params: { [key: string]: any } = {};
+
+    if (product !== undefined && product !== "") {
+        params.product = product;
+    }
+    if (price !== undefined) {
+        params.price = price;
+    }
+    if (brand !== undefined && brand !== "") {
+        params.brand = brand;
+    }
+
+    const body = {
+        action: 'filter',
+        params: params
+    };
+
+    const response = await fetch(BASE_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Auth': authString
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch filtered product IDs');
+    }
+    const data = await response.json();
+    return data.result;
+}
+
+
+
+async function fetchProductDetails(productIds: string[], currentProducts: ProductInterface[]): Promise<ProductInterface[]> {
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const authString = md5(PASSWORD + '_' + timestamp);
 
@@ -88,13 +92,8 @@ async function fetchProductDetails(productIds: string[], currentProducts: Produc
     }
 
     const { result } = await response.json();
+    return result
 
-    return result.reduce((acc: ProductType[], product: ProductType) => {
-        if (!acc.find((p: ProductType) => p.id === product.id) && !currentProducts.find((p: ProductType) => p.id === product.id)) {
-            acc.push(product);
-        }
-        return acc;
-    }, []);
 }
 
 export { fetchProductIds, fetchProductDetails, fetchFilteredProductIds };

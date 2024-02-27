@@ -1,31 +1,26 @@
-// ProductList.tsx
 import React, { useEffect, useState } from 'react';
 import Product from './Product';
 import { fetchFilteredProductIds, fetchProductDetails, fetchProductIds } from './utils/api';
 import useDebounce from "./utils/hooks/useDebounce";
 import Loading from "./utils/Loading";
 import Pagination from "./utils/Pagination";
-
-interface ProductType {
-    id: string;
-    product: string;
-    price: number;
-    brand?: string;
-}
+import { ProductInterface } from "./types/productInterface";
 
 const ProductList: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(false);
-    const [products, setProducts] = useState<ProductType[]>([]);
-    const [filterQuery, setFilterQuery] = useState<string>('');
+    const [products, setProducts] = useState<ProductInterface[]>([]);
+    const [filterProduct, setFilterProduct] = useState<string>('');
     const [filterPrice, setFilterPrice] = useState<number | undefined>();
     const [filterBrand, setFilterBrand] = useState<string>('');
     const [currentPage, setCurrentPage] = useState<number>(1);
     const itemsPerPage = 50;
 
-    const debouncedFilterQuery = useDebounce(filterQuery, 3000);
+    const debouncedFilterQuery = useDebounce(filterProduct, 3000);
+    const debouncedFilterPrice = useDebounce(filterPrice, 3000);
+    const debouncedFilterBrand = useDebounce(filterBrand, 3000);
 
-    const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setFilterQuery(event.target.value);
+    const handleProductChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilterProduct(event.target.value);
     };
 
     const handlePriceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +34,7 @@ const ProductList: React.FC = () => {
 
     const handlePageChange = async (page: number) => {
         setCurrentPage(page);
-
-        if (!filterQuery && page === Math.ceil(products.length / itemsPerPage) && page > 1) {
+        if (!filterProduct && page === Math.ceil(products.length / itemsPerPage) && page > 1) {
             await loadAdditionalItems((page - 1) * itemsPerPage);
         }
     };
@@ -65,8 +59,9 @@ const ProductList: React.FC = () => {
                 setLoading(true);
 
                 let filteredProductIds: string[];
-                if (debouncedFilterQuery.length > 3) {
-                    filteredProductIds = await fetchFilteredProductIds(debouncedFilterQuery, filterPrice);
+
+                if (debouncedFilterQuery.length > 3 || debouncedFilterPrice !== undefined || debouncedFilterBrand.length > 3) {
+                    filteredProductIds = await fetchFilteredProductIds(debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand);
                 } else {
                     filteredProductIds = await fetchProductIds(0);
                 }
@@ -80,8 +75,9 @@ const ProductList: React.FC = () => {
             }
         };
 
+        setProducts([]);
         fetchProducts();
-    }, [debouncedFilterQuery, filterPrice]);
+    }, [debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand]);
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -95,8 +91,8 @@ const ProductList: React.FC = () => {
                 <input
                     type="text"
                     id="filterQuery"
-                    value={filterQuery}
-                    onChange={handleFilterChange}
+                    value={filterProduct}
+                    onChange={handleProductChange}
                 />
             </div>
             <div>

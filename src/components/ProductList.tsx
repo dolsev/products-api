@@ -34,23 +34,6 @@ const ProductList: React.FC = () => {
 
     const handlePageChange = async (page: number) => {
         setCurrentPage(page);
-        if (!filterProduct && page === Math.ceil(products.length / itemsPerPage) && page > 1) {
-            await loadAdditionalItems((page - 1) * itemsPerPage);
-        }
-    };
-
-    const loadAdditionalItems = async (offset: number) => {
-        try {
-            setLoading(true);
-
-            const additionalProductIds = await fetchProductIds(offset);
-            const additionalProductDetails = await fetchProductDetails(additionalProductIds, products);
-            setProducts([...products, ...additionalProductDetails]);
-        } catch (error) {
-            console.error('Error loading additional items:', error);
-        } finally {
-            setLoading(false);
-        }
     };
 
     useEffect(() => {
@@ -58,16 +41,25 @@ const ProductList: React.FC = () => {
             try {
                 setLoading(true);
 
-                let filteredProductIds: string[];
+                let productIds: string[] = [];
 
                 if (debouncedFilterQuery.length > 3 || debouncedFilterPrice !== undefined || debouncedFilterBrand.length > 3) {
-                    filteredProductIds = await fetchFilteredProductIds(debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand);
+                    productIds = await fetchFilteredProductIds(debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand);
                 } else {
-                    filteredProductIds = await fetchProductIds(0);
+                    productIds = await fetchProductIds(0);
                 }
-                const productDetails = await fetchProductDetails(filteredProductIds, products);
 
-                setProducts(productDetails);
+                const fetchedProducts = await fetchProductDetails(productIds, []);
+
+                // Remove duplicates by ID
+                const uniqueProducts = fetchedProducts.reduce<ProductInterface[]>((acc, product) => {
+                    if (!acc.find(p => p.id === product.id)) {
+                        acc.push(product);
+                    }
+                    return acc;
+                }, []);
+
+                setProducts(uniqueProducts);
             } catch (error) {
                 console.error('Error fetching products:', error);
             } finally {
@@ -75,7 +67,7 @@ const ProductList: React.FC = () => {
             }
         };
 
-        setProducts([]);
+        // Refetch data whenever any of the filters change
         fetchProducts();
     }, [debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand]);
 

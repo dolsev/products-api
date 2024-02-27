@@ -34,12 +34,44 @@ const ProductList: React.FC = () => {
 
     const handlePageChange = async (page: number) => {
         setCurrentPage(page);
+        const totalPages = Math.ceil(products.length / itemsPerPage);
+        if (
+            !filterProduct &&
+            !filterPrice &&
+            !filterBrand &&
+            page === totalPages &&
+            totalPages > 1 &&
+            products.length < page * itemsPerPage
+        ) {
+            await loadAdditionalItems((page - 1) * itemsPerPage);
+        }
+    };
+
+    const loadAdditionalItems = async (offset: number) => {
+        try {
+            setLoading(true);
+
+            const additionalProductIds = await fetchProductIds(offset);
+            const additionalProductDetails = await fetchProductDetails(additionalProductIds, []);
+
+            const updatedProducts = [...products, ...additionalProductDetails];
+
+            const uniqueProducts = removeDuplicatesById(updatedProducts);
+
+            setProducts(uniqueProducts);
+        } catch (error) {
+            console.error('Error loading additional items:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
+
+                setProducts([]);
 
                 let productIds: string[] = [];
 
@@ -51,13 +83,7 @@ const ProductList: React.FC = () => {
 
                 const fetchedProducts = await fetchProductDetails(productIds, []);
 
-                // Remove duplicates by ID
-                const uniqueProducts = fetchedProducts.reduce<ProductInterface[]>((acc, product) => {
-                    if (!acc.find(p => p.id === product.id)) {
-                        acc.push(product);
-                    }
-                    return acc;
-                }, []);
+                const uniqueProducts = removeDuplicatesById(fetchedProducts);
 
                 setProducts(uniqueProducts);
             } catch (error) {
@@ -67,9 +93,17 @@ const ProductList: React.FC = () => {
             }
         };
 
-        // Refetch data whenever any of the filters change
         fetchProducts();
     }, [debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand]);
+
+    const removeDuplicatesById = (products: ProductInterface[]): ProductInterface[] => {
+        return products.reduce<ProductInterface[]>((acc, product) => {
+            if (!acc.find(p => p.id === product.id)) {
+                acc.push(product);
+            }
+            return acc;
+        }, []);
+    };
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button, Typography } from '@mui/material';
 
 interface PaginationProps {
     currentPage: number;
@@ -9,17 +10,24 @@ interface PaginationProps {
 const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
     const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
 
+    const handlePageChange = (page: number) => {
+        onPageChange(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top
+    };
+
     return (
-        <div>
-            {pages.map(page => (
-                <button
-                    key={page}
-                    onClick={() => onPageChange(page)}
-                    disabled={page === currentPage}
-                >
-                    {page}
-                </button>
-            ))}
+        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <div>
+                {pages.map(page => (
+                    <Button
+                        key={page}
+                        variant={page === currentPage ? "contained" : "outlined"}
+                        onClick={() => handlePageChange(page)}
+                    >
+                        {page}
+                    </Button>
+                ))}
+            </div>
         </div>
     );
 }

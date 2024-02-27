@@ -1,9 +1,14 @@
 import React from 'react';
+import { CircularProgress } from '@mui/material';
 
-const Loading: React.FC = () => {
+interface LoadingProps {
+    loading: boolean;
+}
+
+const Loading: React.FC<LoadingProps> = ({ loading }) => {
     return (
-        <div>
-            <p>Загрузка, пожалуйста, подождите...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            {loading && <CircularProgress />}
         </div>
     );
 }

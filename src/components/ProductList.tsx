@@ -4,6 +4,7 @@ import { fetchFilteredProductIds, fetchProductDetails, fetchProductIds } from '.
 import useDebounce from "./utils/hooks/useDebounce";
 import Loading from "./utils/Loading";
 import Pagination from "./utils/Pagination";
+import { TextField, Grid, Typography } from '@mui/material';
 import { ProductInterface } from "./types/productInterface";
 
 const ProductList: React.FC = () => {
@@ -15,7 +16,7 @@ const ProductList: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const itemsPerPage = 50;
 
-    const debouncedFilterQuery = useDebounce(filterProduct, 3000);
+    const debouncedFilterProduct = useDebounce(filterProduct, 3000);
     const debouncedFilterPrice = useDebounce(filterPrice, 3000);
     const debouncedFilterBrand = useDebounce(filterBrand, 3000);
 
@@ -75,8 +76,8 @@ const ProductList: React.FC = () => {
 
                 let productIds: string[] = [];
 
-                if (debouncedFilterQuery.length > 3 || debouncedFilterPrice !== undefined || debouncedFilterBrand.length > 3) {
-                    productIds = await fetchFilteredProductIds(debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand);
+                if (debouncedFilterProduct.length > 3 || debouncedFilterPrice !== undefined || debouncedFilterBrand.length > 3) {
+                    productIds = await fetchFilteredProductIds(debouncedFilterProduct, debouncedFilterPrice, debouncedFilterBrand);
                 } else {
                     productIds = await fetchProductIds(0);
                 }
@@ -94,7 +95,7 @@ const ProductList: React.FC = () => {
         };
 
         fetchProducts();
-    }, [debouncedFilterQuery, debouncedFilterPrice, debouncedFilterBrand]);
+    }, [debouncedFilterProduct, debouncedFilterPrice, debouncedFilterBrand]);
 
     const removeDuplicatesById = (products: ProductInterface[]): ProductInterface[] => {
         return products.reduce<ProductInterface[]>((acc, product) => {
@@ -110,48 +111,56 @@ const ProductList: React.FC = () => {
     const paginatedProducts = products.slice(startIndex, endIndex);
 
     return (
-        <div>
-            <h1>Список товаров</h1>
-            <div>
-                <label htmlFor="filterQuery">Поиск по наименованию:</label>
-                <input
-                    type="text"
+        <Grid container spacing={2}>
+            <Grid item xs={12}>
+                <Typography variant="h4">Список товаров</Typography>
+            </Grid>
+            <Grid item xs={12}>
+                <TextField
                     id="filterQuery"
+                    label="Поиск по наименованию"
+                    variant="outlined"
                     value={filterProduct}
                     onChange={handleProductChange}
+                    fullWidth
                 />
-            </div>
-            <div>
-                <label htmlFor="filterPrice">Фильтр по цене:</label>
-                <input
-                    type="number"
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <TextField
                     id="filterPrice"
+                    label="Поиск по цене"
+                    type="number"
+                    variant="outlined"
                     value={filterPrice ?? ''}
                     onChange={handlePriceChange}
+                    fullWidth
                 />
-            </div>
-            <div>
-                <label htmlFor="filterBrand">Фильтр по бренду:</label>
-                <input
-                    type="text"
+            </Grid>
+            <Grid item xs={12} sm={6}>
+                <TextField
                     id="filterBrand"
+                    label="Поиск по бренду"
+                    variant="outlined"
                     value={filterBrand}
                     onChange={handleBrandChange}
+                    fullWidth
                 />
-            </div>
-            {loading ? <Loading /> : (
-                <>
-                    {paginatedProducts.map(product => (
-                        <Product key={product.id} product={product} />
-                    ))}
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={Math.ceil(products.length / itemsPerPage)}
-                        onPageChange={handlePageChange}
-                    />
-                </>
-            )}
-        </div>
+            </Grid>
+            <Grid item xs={12}>
+                {loading ? <Loading /> : (
+                    <>
+                        {paginatedProducts.map(product => (
+                            <Product key={product.id} product={product} />
+                        ))}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={Math.ceil(products.length / itemsPerPage)}
+                            onPageChange={handlePageChange}
+                        />
+                    </>
+                )}
+            </Grid>
+        </Grid>
     );
 }
 

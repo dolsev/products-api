@@ -33,7 +33,6 @@ const ProductList: React.FC = () => {
         setFilterBrand(event.target.value);
     };
 
-    // Pagination logic
     const handlePageChange = async (page: number) => {
         setCurrentPage(page);
         const totalPages = Math.ceil(products.length / itemsPerPage);

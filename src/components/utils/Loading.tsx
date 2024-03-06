@@ -1,14 +1,12 @@
+// Loading.tsx
 import React from 'react';
-import { CircularProgress } from '@mui/material';
+import { CircularProgress, Typography } from '@mui/material';
 
-interface LoadingProps {
-    loading: boolean;
-}
-
-const Loading: React.FC<LoadingProps> = ({ loading }) => {
+const Loading: React.FC = () => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {loading && <CircularProgress />}
+            <CircularProgress />
+            <Typography variant="body1" style={{ marginTop: '1rem' }}>Загрузка, пожалуйста, подождите...</Typography>
         </div>
     );
 }
